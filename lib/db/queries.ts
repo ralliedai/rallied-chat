@@ -413,7 +413,7 @@ export async function getDocumentsById({ id }: { id: string }) {
 }
 
 export async function getDocumentById({ id }: { id: string }) {
-  if (!hasDb) return [];
+  if (!hasDb) return undefined;
     try {
     const [selectedDocument] = await db
       .select()
