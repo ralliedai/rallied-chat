@@ -47,6 +47,25 @@ const THEME_COLOR_SCRIPT = `\
   observer.observe(html, { attributes: true, attributeFilter: ['class'] });
   updateThemeColor();
 })();`;
+const THEME_LISTENER_SCRIPT = `\
+(function() {
+  window.addEventListener('message', function(e) {
+    if (!e.data || !e.data.type) return;
+    if (e.data.type === 'rallied:theme') {
+      var theme = e.data.theme;
+      if (theme === 'dark' || theme === 'light') {
+        localStorage.setItem('theme', theme);
+        document.documentElement.classList.toggle('dark', theme === 'dark');
+        document.documentElement.classList.toggle('light', theme === 'light');
+        document.documentElement.style.colorScheme = theme;
+      }
+    }
+    if (e.data.type === 'rallied:focus') {
+      var textarea = document.querySelector('[data-testid="chat-input"]') || document.querySelector('textarea');
+      if (textarea) textarea.focus();
+    }
+  });
+})();`;
 
 export default function RootLayout({
   children,
@@ -64,6 +83,12 @@ export default function RootLayout({
           // biome-ignore lint/security/noDangerouslySetInnerHtml: "Required"
           dangerouslySetInnerHTML={{
             __html: THEME_COLOR_SCRIPT,
+          }}
+        />
+        <script
+          // biome-ignore lint/security/noDangerouslySetInnerHtml: "Required"
+          dangerouslySetInnerHTML={{
+            __html: THEME_LISTENER_SCRIPT,
           }}
         />
       </head>

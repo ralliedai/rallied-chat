@@ -1,6 +1,13 @@
-import { customProvider, gateway } from "ai";
+import { anthropic } from "@ai-sdk/anthropic";
+import { customProvider } from "ai";
 import { isTestEnvironment } from "../constants";
-import { titleModel } from "./models";
+
+const ralliedProvider = customProvider({
+  languageModels: {
+    "chat-model": anthropic("claude-sonnet-4-20250514"),
+    "title-model": anthropic("claude-haiku-4-5-20251001"),
+  },
+});
 
 export const myProvider = isTestEnvironment
   ? (() => {
@@ -18,13 +25,17 @@ export function getLanguageModel(modelId: string) {
   if (isTestEnvironment && myProvider) {
     return myProvider.languageModel(modelId);
   }
-
-  return gateway.languageModel(modelId);
+  // Use our custom provider for known models, fall back to chat-model
+  try {
+    return ralliedProvider.languageModel(modelId);
+  } catch {
+    return ralliedProvider.languageModel("chat-model");
+  }
 }
 
 export function getTitleModel() {
   if (isTestEnvironment && myProvider) {
     return myProvider.languageModel("title-model");
   }
-  return gateway.languageModel(titleModel.id);
+  return ralliedProvider.languageModel("title-model");
 }
