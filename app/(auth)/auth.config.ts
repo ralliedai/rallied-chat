@@ -9,15 +9,15 @@ export const authConfig = {
   cookies: {
     sessionToken: {
       name: "__Secure-authjs.session-token",
-      options: { httpOnly: true, sameSite: "none" as const, secure: true, path: "/" },
+      options: { httpOnly: true, sameSite: "none" as const, secure: true, path: "/", partitioned: true },
     },
     callbackUrl: {
       name: "__Secure-authjs.callback-url",
-      options: { httpOnly: true, sameSite: "none" as const, secure: true, path: "/" },
+      options: { httpOnly: true, sameSite: "none" as const, secure: true, path: "/", partitioned: true },
     },
     csrfToken: {
-      name: "__Host-authjs.csrf-token",
-      options: { httpOnly: true, sameSite: "none" as const, secure: true, path: "/" },
+      name: "__Secure-authjs.csrf-token",
+      options: { httpOnly: true, sameSite: "none" as const, secure: true, path: "/", partitioned: true },
     },
   },
   pages: {
