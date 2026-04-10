@@ -33,10 +33,12 @@ import {
 } from "./schema";
 import { generateHashedPassword } from "./utils";
 
-const client = postgres(process.env.POSTGRES_URL ?? "");
-const db = drizzle(client);
+const hasDb = !!process.env.POSTGRES_URL;
+const client = hasDb ? postgres(process.env.POSTGRES_URL!) : null;
+const db = client ? drizzle(client) : null!;
 
 export async function getUser(email: string): Promise<User[]> {
+  if (!hasDb) return [];
   try {
     return await db.select().from(user).where(eq(user.email, email));
   } catch (_error) {
@@ -58,6 +60,9 @@ export async function createUser(email: string, password: string) {
 }
 
 export async function createGuestUser() {
+  if (!hasDb) {
+    return [{ id: generateUUID(), email: `guest-${Date.now()}` }];
+  }
   const email = `guest-${Date.now()}`;
   const password = generateHashedPassword(generateUUID());
 
@@ -85,7 +90,7 @@ export async function saveChat({
   title: string;
   visibility: VisibilityType;
 }) {
-  try {
+  if (!hasDb) return; try {
     return await db.insert(chat).values({
       id,
       createdAt: new Date(),
@@ -225,7 +230,7 @@ export async function getChatsByUserId({
 }
 
 export async function getChatById({ id }: { id: string }) {
-  try {
+  if (!hasDb) return null; try {
     const [selectedChat] = await db.select().from(chat).where(eq(chat.id, id));
     if (!selectedChat) {
       return null;
@@ -238,7 +243,7 @@ export async function getChatById({ id }: { id: string }) {
 }
 
 export async function saveMessages({ messages }: { messages: DBMessage[] }) {
-  try {
+  if (!hasDb) return; try {
     return await db.insert(message).values(messages);
   } catch (_error) {
     throw new ChatbotError("bad_request:database", "Failed to save messages");
@@ -260,7 +265,7 @@ export async function updateMessage({
 }
 
 export async function getMessagesByChatId({ id }: { id: string }) {
-  try {
+  if (!hasDb) return []; try {
     return await db
       .select()
       .from(message)
@@ -306,7 +311,7 @@ export async function voteMessage({
 }
 
 export async function getVotesByChatId({ id }: { id: string }) {
-  try {
+  if (!hasDb) return []; try {
     return await db.select().from(vote).where(eq(vote.chatId, id));
   } catch (_error) {
     throw new ChatbotError(
@@ -479,7 +484,7 @@ export async function getSuggestionsByDocumentId({
 }
 
 export async function getMessageById({ id }: { id: string }) {
-  try {
+  if (!hasDb) return []; try {
     return await db.select().from(message).where(eq(message.id, id));
   } catch (_error) {
     throw new ChatbotError(
@@ -614,7 +619,7 @@ export async function createStreamId({
 }
 
 export async function getStreamIdsByChatId({ chatId }: { chatId: string }) {
-  try {
+  if (!hasDb) return []; try {
     const streamIds = await db
       .select({ id: stream.id })
       .from(stream)
