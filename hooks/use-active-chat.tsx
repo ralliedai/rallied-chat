@@ -3,7 +3,7 @@
 import type { UseChatHelpers } from "@ai-sdk/react";
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport } from "ai";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import {
   createContext,
   type Dispatch,
@@ -58,6 +58,18 @@ function extractChatId(pathname: string): string | null {
 
 export function ActiveChatProvider({ children }: { children: ReactNode }) {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
+
+  // Extract ticket context from URL params (passed by Chrome extension)
+  const ticketContext = useMemo(() => {
+    const ticketId = searchParams.get("ticketId");
+    const psaType = searchParams.get("psaType") as "connectwise" | "halopsa" | null;
+    const psaDomain = searchParams.get("psaDomain");
+    if (ticketId && psaType && psaDomain) {
+      return { ticketId, psaType, psaDomain };
+    }
+    return undefined;
+  }, [searchParams]);
   const { setDataStream } = useDataStream();
   const { mutate } = useSWRConfig();
 
@@ -110,6 +122,7 @@ export function ActiveChatProvider({ children }: { children: ReactNode }) {
     id: chatId,
     messages: initialMessages,
     generateId: generateUUID,
+    body: ticketContext ? { ticketContext } : undefined,
     sendAutomaticallyWhen: ({ messages: currentMessages }) => {
       const lastMessage = currentMessages.at(-1);
       return (

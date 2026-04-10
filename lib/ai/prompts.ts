@@ -1,6 +1,40 @@
 import type { Geo } from "@vercel/functions";
 import type { ArtifactKind } from "@/components/chat/artifact";
 
+export type TicketContext = {
+  ticketId: string;
+  psaType: "connectwise" | "halopsa";
+  psaDomain: string;
+  ticketTitle?: string;
+  ticketDescription?: string;
+  requester?: string;
+  status?: string;
+};
+
+export const ralliedPrompt = `You are a helpful IT support agent for an MSP (Managed Service Provider). You help technicians diagnose and resolve IT issues.
+
+You are direct, concise, and technical. When asked to investigate or diagnose, think step by step. When you need more information, ask for it. When you can take action using available tools, propose the action clearly before executing.
+
+Keep responses focused on the technical issue at hand.`;
+
+export const ticketContextPrompt = (ticket: TicketContext) => {
+  const parts = [
+    `You are currently assisting with ${ticket.psaType === "connectwise" ? "ConnectWise" : "HaloPSA"} Ticket #${ticket.ticketId}.`,
+  ];
+
+  if (ticket.ticketTitle) parts.push(`Title: ${ticket.ticketTitle}`);
+  if (ticket.ticketDescription) parts.push(`Description: ${ticket.ticketDescription}`);
+  if (ticket.requester) parts.push(`Requester: ${ticket.requester}`);
+  if (ticket.status) parts.push(`Status: ${ticket.status}`);
+
+  parts.push(
+    "\nUse this ticket context to inform your responses. The technician is viewing this ticket right now and wants your help diagnosing or resolving it."
+  );
+
+  return parts.join("\n");
+};
+
+// Keep artifacts prompt for compatibility with template components
 export const artifactsPrompt = `
 Artifacts is a side panel that displays content alongside the conversation. It supports scripts (code), documents (text), and spreadsheets. Changes appear in real-time.
 
@@ -66,10 +100,20 @@ About the origin of user's request:
 export const systemPrompt = ({
   requestHints,
   supportsTools,
+  ticketContext,
 }: {
   requestHints: RequestHints;
   supportsTools: boolean;
+  ticketContext?: TicketContext;
 }) => {
+  // If ticket context is provided, use the rallied prompt
+  if (ticketContext) {
+    const base = ralliedPrompt;
+    const ticket = ticketContextPrompt(ticketContext);
+    return `${base}\n\n${ticket}`;
+  }
+
+  // Default template behavior
   const requestPrompt = getRequestPromptFromHints(requestHints);
 
   if (!supportsTools) {

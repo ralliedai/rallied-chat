@@ -26,12 +26,23 @@ const toolApprovalMessageSchema = z.object({
   parts: z.array(z.record(z.unknown())),
 });
 
+const ticketContextSchema = z.object({
+  ticketId: z.string(),
+  psaType: z.enum(["connectwise", "halopsa"]),
+  psaDomain: z.string(),
+  ticketTitle: z.string().optional(),
+  ticketDescription: z.string().optional(),
+  requester: z.string().optional(),
+  status: z.string().optional(),
+}).optional();
+
 export const postRequestBodySchema = z.object({
   id: z.string().uuid(),
   message: userMessageSchema.optional(),
   messages: z.array(toolApprovalMessageSchema).optional(),
   selectedChatModel: z.string(),
   selectedVisibilityType: z.enum(["public", "private"]),
+  ticketContext: ticketContextSchema,
 });
 
 export type PostRequestBody = z.infer<typeof postRequestBodySchema>;
