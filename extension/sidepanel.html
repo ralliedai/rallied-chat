@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Rallied AI Chat</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { height: 100%; overflow: hidden; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+    
+    #container { display: flex; flex-direction: column; height: 100%; background: #fafafa; }
+    
+    #ticket-bar {
+      padding: 8px 12px;
+      background: #18181b;
+      color: #fff;
+      font-size: 13px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-height: 36px;
+    }
+    #ticket-bar .psa-badge {
+      background: #3b82f6;
+      color: white;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+    #ticket-bar .ticket-id { font-weight: 500; }
+    
+    #no-ticket {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      text-align: center;
+      color: #71717a;
+    }
+    #no-ticket h2 { font-size: 16px; color: #18181b; margin-bottom: 8px; }
+    #no-ticket p { font-size: 13px; line-height: 1.5; }
+    
+    #chat-frame {
+      flex: 1;
+      border: none;
+      width: 100%;
+      display: none;
+    }
+    
+    #settings-btn {
+      position: absolute;
+      top: 6px;
+      right: 8px;
+      background: none;
+      border: none;
+      color: #a1a1aa;
+      cursor: pointer;
+      font-size: 16px;
+      padding: 4px;
+    }
+    #settings-btn:hover { color: #fff; }
+    
+    #settings-panel {
+      display: none;
+      padding: 16px;
+      background: #fff;
+      border-bottom: 1px solid #e4e4e7;
+    }
+    #settings-panel label { display: block; font-size: 12px; color: #71717a; margin-bottom: 4px; }
+    #settings-panel input {
+      width: 100%;
+      padding: 8px;
+      border: 1px solid #e4e4e7;
+      border-radius: 6px;
+      font-size: 13px;
+      margin-bottom: 12px;
+    }
+    #settings-panel button {
+      background: #18181b;
+      color: #fff;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 6px;
+      font-size: 13px;
+      cursor: pointer;
+    }
+    #settings-panel button:hover { background: #27272a; }
+  </style>
+</head>
+<body>
+  <div id="container">
+    <div id="ticket-bar" style="position: relative;">
+      <span id="psa-badge" class="psa-badge"></span>
+      <span id="ticket-label" class="ticket-id">No ticket</span>
+      <button id="settings-btn" title="Settings">⚙</button>
+    </div>
+    
+    <div id="settings-panel">
+      <label for="api-key-input">API Key</label>
+      <input id="api-key-input" type="password" placeholder="Enter your MSP API key" />
+      <label for="chatbot-url-input">Chatbot URL</label>
+      <input id="chatbot-url-input" type="url" placeholder="https://your-chatbot.vercel.app" />
+      <button id="save-settings">Save</button>
+    </div>
+    
+    <div id="no-ticket">
+      <h2>No ticket detected</h2>
+      <p>Navigate to a ticket in ConnectWise or HaloPSA to start chatting with your AI agent.</p>
+    </div>
+    
+    <iframe id="chat-frame" sandbox="allow-scripts allow-same-origin allow-forms allow-popups"></iframe>
+  </div>
+
+  <script>
+    const DEFAULT_CHATBOT_URL = 'http://localhost:3000';
+    
+    let currentTicket = null;
+    let chatbotUrl = DEFAULT_CHATBOT_URL;
+    let apiKey = '';
+
+    // Load settings
+    chrome.storage.sync.get(['apiKey', 'chatbotUrl'], (result) => {
+      apiKey = result.apiKey || '';
+      chatbotUrl = result.chatbotUrl || DEFAULT_CHATBOT_URL;
+      document.getElementById('api-key-input').value = apiKey;
+      document.getElementById('chatbot-url-input').value = chatbotUrl;
+      
+      // Check for current ticket
+      chrome.storage.session.get('currentTicket', (result) => {
+        if (result.currentTicket) {
+          showTicket(result.currentTicket);
+        }
+      });
+    });
+
+    // Settings toggle
+    document.getElementById('settings-btn').addEventListener('click', () => {
+      const panel = document.getElementById('settings-panel');
+      panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+    });
+
+    // Save settings
+    document.getElementById('save-settings').addEventListener('click', () => {
+      apiKey = document.getElementById('api-key-input').value;
+      chatbotUrl = document.getElementById('chatbot-url-input').value || DEFAULT_CHATBOT_URL;
+      chrome.storage.sync.set({ apiKey, chatbotUrl });
+      document.getElementById('settings-panel').style.display = 'none';
+      
+      // Reload chat if ticket is active
+      if (currentTicket) {
+        loadChat(currentTicket);
+      }
+    });
+
+    // Listen for ticket changes
+    chrome.storage.session.onChanged.addListener((changes) => {
+      if (changes.currentTicket) {
+        const newTicket = changes.currentTicket.newValue;
+        if (newTicket) {
+          // Clear and start fresh on tab switch (per CEO review decision)
+          showTicket(newTicket);
+        } else {
+          hideTicket();
+        }
+      }
+    });
+
+    function showTicket(ticket) {
+      currentTicket = ticket;
+      
+      const badge = document.getElementById('psa-badge');
+      badge.textContent = ticket.psaType === 'connectwise' ? 'CW' : 'HALO';
+      
+      document.getElementById('ticket-label').textContent = `Ticket #${ticket.ticketId}`;
+      document.getElementById('no-ticket').style.display = 'none';
+      
+      loadChat(ticket);
+    }
+
+    function hideTicket() {
+      currentTicket = null;
+      document.getElementById('no-ticket').style.display = 'flex';
+      document.getElementById('chat-frame').style.display = 'none';
+      document.getElementById('ticket-label').textContent = 'No ticket';
+    }
+
+    function loadChat(ticket) {
+      const frame = document.getElementById('chat-frame');
+      const params = new URLSearchParams({
+        ticketId: ticket.ticketId,
+        psaType: ticket.psaType,
+        psaDomain: ticket.psaDomain,
+        ...(apiKey && { apiKey })
+      });
+      frame.src = `${chatbotUrl}?${params.toString()}`;
+      frame.style.display = 'block';
+    }
+  </script>
+</body>
+</html>
