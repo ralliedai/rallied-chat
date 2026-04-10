@@ -50,6 +50,7 @@ export async function getUser(email: string): Promise<User[]> {
 }
 
 export async function createUser(email: string, password: string) {
+  if (!hasDb) return;
   const hashedPassword = generateHashedPassword(password);
 
   try {
@@ -587,6 +588,7 @@ export async function getMessageCountByUserId({
   id: string;
   differenceInHours: number;
 }) {
+  if (!hasDb) return 0;
   try {
     const cutoffTime = new Date(
       Date.now() - differenceInHours * 60 * 60 * 1000
