@@ -104,7 +104,8 @@ export async function saveChat({
 }
 
 export async function deleteChatById({ id }: { id: string }) {
-  try {
+  if (!hasDb) return;
+    try {
     await db.delete(vote).where(eq(vote.chatId, id));
     await db.delete(message).where(eq(message.chatId, id));
     await db.delete(stream).where(eq(stream.chatId, id));
@@ -123,7 +124,8 @@ export async function deleteChatById({ id }: { id: string }) {
 }
 
 export async function deleteAllChatsByUserId({ userId }: { userId: string }) {
-  try {
+  if (!hasDb) return;
+    try {
     const userChats = await db
       .select({ id: chat.id })
       .from(chat)
@@ -164,7 +166,8 @@ export async function getChatsByUserId({
   startingAfter: string | null;
   endingBefore: string | null;
 }) {
-  try {
+  if (!hasDb) return;
+    try {
     const extendedLimit = limit + 1;
 
     const query = (whereCondition?: SQL<unknown>) =>
@@ -257,7 +260,8 @@ export async function updateMessage({
   id: string;
   parts: DBMessage["parts"];
 }) {
-  try {
+  if (!hasDb) return;
+    try {
     return await db.update(message).set({ parts }).where(eq(message.id, id));
   } catch (_error) {
     throw new ChatbotError("bad_request:database", "Failed to update message");
@@ -288,7 +292,8 @@ export async function voteMessage({
   messageId: string;
   type: "up" | "down";
 }) {
-  try {
+  if (!hasDb) return;
+    try {
     const [existingVote] = await db
       .select()
       .from(vote)
@@ -334,7 +339,8 @@ export async function saveDocument({
   content: string;
   userId: string;
 }) {
-  try {
+  if (!hasDb) return;
+    try {
     return await db
       .insert(document)
       .values({
@@ -358,7 +364,8 @@ export async function updateDocumentContent({
   id: string;
   content: string;
 }) {
-  try {
+  if (!hasDb) return;
+    try {
     const docs = await db
       .select()
       .from(document)
@@ -388,7 +395,8 @@ export async function updateDocumentContent({
 }
 
 export async function getDocumentsById({ id }: { id: string }) {
-  try {
+  if (!hasDb) return [];
+    try {
     const documents = await db
       .select()
       .from(document)
@@ -405,7 +413,8 @@ export async function getDocumentsById({ id }: { id: string }) {
 }
 
 export async function getDocumentById({ id }: { id: string }) {
-  try {
+  if (!hasDb) return [];
+    try {
     const [selectedDocument] = await db
       .select()
       .from(document)
@@ -428,7 +437,8 @@ export async function deleteDocumentsByIdAfterTimestamp({
   id: string;
   timestamp: Date;
 }) {
-  try {
+  if (!hasDb) return;
+    try {
     await db
       .delete(suggestion)
       .where(
@@ -455,7 +465,8 @@ export async function saveSuggestions({
 }: {
   suggestions: Suggestion[];
 }) {
-  try {
+  if (!hasDb) return;
+    try {
     return await db.insert(suggestion).values(suggestions);
   } catch (_error) {
     throw new ChatbotError(
@@ -470,7 +481,8 @@ export async function getSuggestionsByDocumentId({
 }: {
   documentId: string;
 }) {
-  try {
+  if (!hasDb) return [];
+    try {
     return await db
       .select()
       .from(suggestion)
@@ -501,7 +513,8 @@ export async function deleteMessagesByChatIdAfterTimestamp({
   chatId: string;
   timestamp: Date;
 }) {
-  try {
+  if (!hasDb) return;
+    try {
     const messagesToDelete = await db
       .select({ id: message.id })
       .from(message)
@@ -541,7 +554,8 @@ export async function updateChatVisibilityById({
   chatId: string;
   visibility: "private" | "public";
 }) {
-  try {
+  if (!hasDb) return;
+    try {
     return await db.update(chat).set({ visibility }).where(eq(chat.id, chatId));
   } catch (_error) {
     throw new ChatbotError(
@@ -558,7 +572,8 @@ export async function updateChatTitleById({
   chatId: string;
   title: string;
 }) {
-  try {
+  if (!hasDb) return;
+    try {
     return await db.update(chat).set({ title }).where(eq(chat.id, chatId));
   } catch (_error) {
     return;
@@ -606,7 +621,8 @@ export async function createStreamId({
   streamId: string;
   chatId: string;
 }) {
-  try {
+  if (!hasDb) return;
+    try {
     await db
       .insert(stream)
       .values({ id: streamId, chatId, createdAt: new Date() });

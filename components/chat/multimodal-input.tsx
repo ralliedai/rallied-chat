@@ -530,11 +530,13 @@ function PureMultimodalInput({
           </PromptInputTools>
 
           {status === "submitted" ? (
-            <StopButton setMessages={setMessages} stop={stop} />
+            <div className="ml-auto">
+              <StopButton setMessages={setMessages} stop={stop} />
+            </div>
           ) : (
             <PromptInputSubmit
               className={cn(
-                "h-7 w-7 rounded-xl transition-all duration-200",
+                "ml-auto h-7 w-7 rounded-xl transition-all duration-200",
                 input.trim()
                   ? "bg-foreground text-background hover:opacity-85 active:scale-95"
                   : "bg-muted text-muted-foreground/25 cursor-not-allowed"
